@@ -1,0 +1,35 @@
+{
+  "name": "tahoma-api",
+  "version": "1.0.0",
+  "description": "Node.js (cloud-based) API wrapper for Somfy Tahoma.",
+  "main": "app.js",
+  "scripts": {
+    "start": "node dist/app.js",
+    "build": "tsc && npm start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "somfy",
+    "tahoma",
+    "smarthome",
+    "automation",
+    "nodejs",
+    "api",
+    "rts",
+    "io",
+    "velux"
+  ],
+  "author": "Tim Wuyts",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "mqtt": "^4.3.7",
+    "node-fetch": "^3.2.6",
+    "yargs": "^17.5.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/node": "^18.0.0",
+    "@types/yargs": "^17.0.10"
+  }
+}

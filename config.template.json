@@ -1,0 +1,8 @@
+{
+    "serverPort": 3000,
+    "log": true,
+    "tahoma": {
+        "username": "my-username",
+        "password": "my-password"
+    }
+}
