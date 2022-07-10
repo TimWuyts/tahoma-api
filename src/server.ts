@@ -6,7 +6,7 @@ import { Request, Response } from 'express-serve-static-core';
 
 import { Config } from './config';
 import { Tahoma } from './tahoma';
-import { TahomaDevice } from './interfaces/tahoma';
+import { TahomaAction, TahomaActionGroup, TahomaDevice, TahomaGateway } from './interfaces/tahoma';
 import { AxiosResponse } from 'axios';
 
 export class Server {
@@ -14,7 +14,9 @@ export class Server {
     public server: http.Server;
 
     public tahoma: Tahoma;
+    public tahomaGateway: TahomaGateway|null = null;
     public tahomaDevices: Array<TahomaDevice> = [];
+    public tahomaActionGroups: Array<TahomaActionGroup> = [];
 
     private readonly config: Config;
 
@@ -32,10 +34,21 @@ export class Server {
         });
 
         this.tahoma = new Tahoma(this.config.tahoma.username, this.config.tahoma.password, this.config.log);
+        
         this.tahoma.getSetup()
             .then((response: AxiosResponse) => {
+                this.tahomaGateway = response.data.gateway;
                 this.tahomaDevices = response.data.devices;
                 console.log(this.tahomaDevices);
+            })
+            .catch(error => {
+                console.log(error.message, error.stack);
+            });
+
+        this.tahoma.getActionGroups()
+            .then((response: AxiosResponse) => {
+                this.tahomaActionGroups = response.data;
+                console.log(this.tahomaActionGroups);
             })
             .catch(error => {
                 console.log(error.message, error.stack);
@@ -60,7 +73,7 @@ export class Server {
             if (req.params.action) {
                 // execute device action
                 const deviceUrl = 'TODO';
-                const action = {
+                const action: TahomaAction = {
                     name: req.params.action
                 };
 

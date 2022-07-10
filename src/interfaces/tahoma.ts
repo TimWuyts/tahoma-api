@@ -3,63 +3,60 @@ export interface TahomaAccount {
     password: string;
 }
 
-export interface TahomaSite {
-    id: string,
-    label: string
+export interface TahomaGateway {
+    gatewayId: string;
+    type: number;
+    subType: number;
+    alive: boolean;
+    syncInProgress: boolean;
+    upToDate: boolean;
+    updateStatus: string;
+    mode: string;
 }
 
 export interface TahomaDevice {
-    id: string;
-    type: string;
-    parent_id: string;
-    categories: string[];
-    states: TahomaState[];
-    capabilities: TahomaCapability[];
-    site_id: string;
-    name: string;
+    oid: string;
+    label: string;
+    type: number;
     available: boolean;
-    version?: string;
+    enabled: true;
+    controllableName: string;
+    definition: TahomaDeviceDefinition;
+    states: TahomaState[];
+    attributes: TahomaAttribute[];
+}
+
+export interface TahomaDeviceDefinition {
+    commands: TahomaCommand[];
+    states: TahomaState[];
+    qualifiedName: string;
+    type: string;
+}
+
+export interface TahomaAction {
+    name?: string;
+    deviceURL?: string;
+    commands?: TahomaCommand[];
+}
+
+export interface TahomaActionGroup {
+    oid?: string;
+    label: string;
+    actions: TahomaAction[];
+}
+
+export interface TahomaAttribute {
+
 }
 
 export interface TahomaState {
     name: string;
     value: any;
-    type: string;
-}
-
-export interface TahomaAction {
-    name: string;
-}
-
-export interface TahomaCapability {
-    name: string;
-    parameters: TahomaCapabilityParam[];
-}
-
-export interface TahomaCapabilityParam {
-    name: string;
-    type: string;
+    type: number;
 }
 
 export interface TahomaCommand {
-    name: string;
-    parameters?: TahomaCommandParam[];
-}
-
-export interface TahomaCommandParam {
-    name: string;
-    value: any;
-}
-
-export interface TahomaExecutionState {
-    finished: boolean;
-    account?: string;
-    device?: string;
-    expectedState?: object;
-    jobId?: string;
-    deviceState: TahomaDevice;
-}
-
-export interface TahomaExecutionResponse {
-    job_id: string;
+    name?: string;
+    type?: number;
+    parameters?: any[];
 }

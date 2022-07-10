@@ -1,9 +1,10 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosInstance, AxiosError } from 'axios';
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
+import { FileCookieStore } from 'tough-cookie-file-store';
 
 import { HttpResponse } from './enums/http-response';
-import { TahomaAccount, TahomaAction } from './interfaces/tahoma';
+import { TahomaAccount, TahomaAction, TahomaActionGroup } from './interfaces/tahoma';
 
 export class Tahoma {
   private readonly BASE_URL: string = 'https://www.tahomalink.com/enduser-mobile-web/enduserAPI';
@@ -13,7 +14,7 @@ export class Tahoma {
   private debug: boolean;
 
   private client: AxiosInstance;
-  private jar = new CookieJar();
+  private jar = new CookieJar(new FileCookieStore('./dist/cookie.json'));
   
   constructor(
     username: TahomaAccount['username'], 
@@ -93,7 +94,7 @@ export class Tahoma {
 	 * @async
 	 */
   public executeDeviceAction(name: string, deviceUrl: string, action: TahomaAction): Promise<any> {
-    const actionData = {
+    const actionData: TahomaActionGroup = {
       label: `${name}-${action.name}`,
       actions: [
         {
