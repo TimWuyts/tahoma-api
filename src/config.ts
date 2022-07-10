@@ -1,7 +1,7 @@
 import path from 'path';
 import { readFileSync } from 'fs';
 
-import { TahomaAccount } from './tahoma';
+import { TahomaAccount } from './interfaces/tahoma';
 
 export class Config {
     private commandArguments: any;
@@ -22,10 +22,7 @@ export class Config {
         this.serverPort = this.commandArguments.port || this.fileConfig.serverPort || 3000;
         this.log = this.commandArguments.verbose || this.fileConfig.log || false;
 
-        this.tahoma = {
-            username: this.fileConfig.tahoma.username,
-            password: this.fileConfig.tahoma.password
-        };
+        this.tahoma = this.fileConfig.tahoma;
     }
 }
 

@@ -5,8 +5,15 @@
   "main": "app.js",
   "scripts": {
     "start": "node dist/app.js",
+    "watch": "nodemon --exec \"npm run build\" && livereload -w 1000 -d",
     "build": "tsc && npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "nodemonConfig": {
+    "ext": "ts,json,html",
+    "ignore": [
+      "public"
+    ]
   },
   "keywords": [
     "somfy",
@@ -22,14 +29,19 @@
   "author": "Tim Wuyts",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.27.2",
+    "axios-cookiejar-support": "^4.0.2",
     "express": "^4.18.1",
     "mqtt": "^4.3.7",
-    "node-fetch": "^3.2.6",
+    "tough-cookie": "^4.0.0",
     "yargs": "^17.5.1"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
     "@types/node": "^18.0.0",
-    "@types/yargs": "^17.0.10"
+    "@types/tough-cookie": "^4.0.2",
+    "@types/yargs": "^17.0.10",
+    "livereload": "^0.9.3",
+    "nodemon": "^2.0.18"
   }
 }

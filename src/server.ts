@@ -1,13 +1,20 @@
 import * as bodyParser from 'body-parser';
 import * as http from 'http';
+import path from 'path';
 import express, { Express } from 'express';
 import { Request, Response } from 'express-serve-static-core';
 
 import { Config } from './config';
+import { Tahoma } from './tahoma';
+import { TahomaDevice } from './interfaces/tahoma';
+import { AxiosResponse } from 'axios';
 
 export class Server {
     public app: Express;
     public server: http.Server;
+
+    public tahoma: Tahoma;
+    public tahomaDevices: Array<TahomaDevice> = [];
 
     private readonly config: Config;
 
@@ -19,18 +26,52 @@ export class Server {
         this.app.use(bodyParser.urlencoded({ extended: true }));
 
         this.routes();
-        
+
         this.server = this.app.listen(this.config.serverPort, () => {
-            console.log(`Tahoma API listening on port ${this.config.serverPort}`);
+            if (this.config.log) console.log(`Tahoma API listening on port ${this.config.serverPort}`);
         });
+
+        this.tahoma = new Tahoma(this.config.tahoma.username, this.config.tahoma.password, this.config.log);
+        this.tahoma.getSetup()
+            .then((response: AxiosResponse) => {
+                this.tahomaDevices = response.data.devices;
+                console.log(this.tahomaDevices);
+            })
+            .catch(error => {
+                console.log(error.message, error.stack);
+            });
     }
 
     routes() {
         const router = express.Router();
 
         router.get('/', (req: Request, res: Response) => {
-            res.send('Hello World!')
-        })
+            res.sendFile(path.join(__dirname, '../static/index.html'));
+        });
+
+        router.get('/overview', (req: Request, res: Response) => {
+            // TODO: get an overview of devices, scenario's, ...
+            res.send('TODO: overview');
+        });
+
+        router.get('/execute/:name/:action?', (req: Request, res: Response) => {
+            const name = req.params.name;
+            
+            if (req.params.action) {
+                // execute device action
+                const deviceUrl = 'TODO';
+                const action = {
+                    name: req.params.action
+                };
+
+                res.json(this.tahoma.executeDeviceAction(name, deviceUrl, action));
+            } else {
+                // execute scenario
+                const scenarioId = 'TODO';
+
+                res.json(this.tahoma.executeScenario(scenarioId));
+            }
+        });
 
         this.app.use(router);
     }
