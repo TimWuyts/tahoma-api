@@ -1,9 +1,11 @@
 import yargs from 'yargs';
+import { Logger } from 'tslog';
 
 import { Server } from './server';
 import { Config } from './config';
 
-const args = yargs.options({
+export const log = new Logger({ name: 'console', overwriteConsole: true });
+export const args = yargs.options({
     verbose: {
         alias: 'v',
         type: 'boolean',

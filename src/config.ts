@@ -1,6 +1,7 @@
 import path from 'path';
 import { readFileSync } from 'fs';
 
+import { log } from './app';
 import { TahomaAccount } from './interfaces/tahoma';
 
 export class Config {
@@ -8,7 +9,6 @@ export class Config {
     private fileConfig: any;
 
     public serverPort: number;
-    public log: boolean;
     public tahoma: TahomaAccount;
 
     constructor(args: any) {
@@ -20,9 +20,12 @@ export class Config {
         
         // set configuration values
         this.serverPort = this.commandArguments.port || this.fileConfig.serverPort || 3000;
-        this.log = this.commandArguments.verbose || this.fileConfig.log || false;
-
         this.tahoma = this.fileConfig.tahoma;
+
+        // init logger
+        log.setSettings({
+            minLevel: (this.commandArguments.verbose || this.fileConfig.log || 'info')
+        });
     }
 }
 

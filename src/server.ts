@@ -30,10 +30,10 @@ export class Server {
         this.routes();
 
         this.server = this.app.listen(this.config.serverPort, () => {
-            if (this.config.log) console.log(`Tahoma API listening on port ${this.config.serverPort}`);
+            console.info(`Tahoma API listening on port ${this.config.serverPort}`);
         });
 
-        this.tahoma = new Tahoma(this.config.tahoma.username, this.config.tahoma.password, this.config.log);
+        this.tahoma = new Tahoma(this.config.tahoma.username, this.config.tahoma.password);
         
         this.tahoma.getSetup()
             .then((response: AxiosResponse) => {
@@ -42,7 +42,7 @@ export class Server {
                 console.log(this.tahomaDevices);
             })
             .catch(error => {
-                console.log(error.message, error.stack);
+                console.error(error.message, error.stack);
             });
 
         this.tahoma.getActionGroups()
@@ -51,7 +51,7 @@ export class Server {
                 console.log(this.tahomaActionGroups);
             })
             .catch(error => {
-                console.log(error.message, error.stack);
+                console.error(error.message, error.stack);
             });
     }
 

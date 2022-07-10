@@ -1,6 +1,6 @@
 {
     "serverPort": 3000,
-    "log": true,
+    "log": "error",
     "tahoma": {
         "username": "my-username",
         "password": "my-password"

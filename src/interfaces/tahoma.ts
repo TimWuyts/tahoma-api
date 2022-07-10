@@ -46,7 +46,9 @@ export interface TahomaActionGroup {
 }
 
 export interface TahomaAttribute {
-
+    name: string;
+    value: any;
+    type: number;
 }
 
 export interface TahomaState {

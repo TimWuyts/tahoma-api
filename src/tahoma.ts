@@ -11,15 +11,13 @@ export class Tahoma {
 
   private username: TahomaAccount['username'];
   private password: TahomaAccount['password'];
-  private debug: boolean;
 
   private client: AxiosInstance;
   private jar = new CookieJar(new FileCookieStore('./dist/cookie.json'));
   
   constructor(
     username: TahomaAccount['username'], 
-    password: TahomaAccount['password'],
-    debug?: boolean
+    password: TahomaAccount['password']
   ) {
     this.client = wrapper(axios.create({ jar: this.jar }));
     this.clientDefaults();
@@ -27,7 +25,6 @@ export class Tahoma {
 
     this.username = username;
     this.password = password;
-    this.debug = debug || false;
   }
 
   /**
@@ -180,18 +177,19 @@ export class Tahoma {
 
 
   private request(options: AxiosRequestConfig): Promise<any> {
-    if (this.debug) console.debug(options);
+    console.debug(options);
 
     return this.client(options)
       .then((response: AxiosResponse) => {
         if (response.status !== HttpResponse.OK) {
+          console.error('Tahoma: http_error');
           return 'http_error';
         }
 
         return response;
       })
       .catch((error: AxiosError) => {
-        if (this.debug) console.error(error.response?.data);
+        console.error(error.response?.data);
         Promise.reject(error.response);
       });
   }
@@ -214,6 +212,7 @@ export class Tahoma {
         return this.login(this.username, this.password)
           .then((response: AxiosResponse) => {
             if (!response.data.success) {
+              console.error('Tahoma: login_error');
               return 'login_error';
             }
 
