@@ -1,8 +1,16 @@
 {
-    "serverPort": 3000,
     "log": "error",
     "tahoma": {
-        "username": "my-username",
-        "password": "my-password"
+        "username": "tahoma-username",
+        "password": "tahoma-password"
+    },
+    "server": {
+        "port": 3000
+    },
+    "mqtt": {
+        "url": "mqtt://x.x.x.x",
+        "name": "tahoma",
+        "username": "mqtt-username",
+        "password": "mqtt-password"
     }
 }

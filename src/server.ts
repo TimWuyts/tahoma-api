@@ -8,20 +8,23 @@ import { Config } from './config';
 import { Tahoma } from './tahoma';
 import { TahomaAction, TahomaActionGroup, TahomaDevice, TahomaGateway } from './interfaces/tahoma';
 import { AxiosResponse } from 'axios';
+import { connect, MqttClient, QoS } from 'mqtt';
 
 export class Server {
+    private readonly config: Config;
+
     public app: Express;
     public server: http.Server;
+    public mqtt: MqttClient;
 
     public tahoma: Tahoma;
     public tahomaGateway: TahomaGateway|null = null;
     public tahomaDevices: Array<TahomaDevice> = [];
     public tahomaActionGroups: Array<TahomaActionGroup> = [];
 
-    private readonly config: Config;
-
     constructor(config: Config, callback?: () => any) {
         this.config = config;
+        this.tahoma = new Tahoma(this.config.tahoma.username, this.config.tahoma.password);
 
         this.app = express();
         this.app.use(bodyParser.json());
@@ -29,12 +32,28 @@ export class Server {
 
         this.routes();
 
-        this.server = this.app.listen(this.config.serverPort, () => {
-            console.info(`Tahoma API listening on port ${this.config.serverPort}`);
+        this.server = this.app.listen(this.config.server.port, () => {
+            console.info(`Tahoma API listening on port ${this.config.server.port}`);
+
+            this.init();     
         });
 
-        this.tahoma = new Tahoma(this.config.tahoma.username, this.config.tahoma.password);
-        
+        this.mqtt = connect(this.config.mqtt.url, {
+            username: this.config.mqtt.username,
+            password: this.config.mqtt.password,
+            will: {
+                topic: `${ this.config.mqtt.topic }/connected`,
+                payload: '0',
+                qos: 0,
+                retain: true
+            },
+            rejectUnauthorized: this.config.mqtt.secure
+        });
+
+        this.listeners();
+    }
+
+    private init() {
         this.tahoma.getSetup()
             .then((response: AxiosResponse) => {
                 this.tahomaGateway = response.data.gateway;
@@ -55,7 +74,7 @@ export class Server {
             });
     }
 
-    routes() {
+    private routes() {
         const router = express.Router();
 
         router.get('/', (req: Request, res: Response) => {
@@ -87,5 +106,31 @@ export class Server {
         });
 
         this.app.use(router);
+    }
+
+    private listeners() {
+        this.mqtt.on('connect', () => {
+            this.publish('connected', '2', true);
+
+            console.info(`MQTT client connected to ${this.config.mqtt.url}`);
+        });
+
+        this.mqtt.on('close', () => {
+            console.warn(`MQTT client disconnected`);
+        });
+
+        this.mqtt.on('error', (error) => {
+            console.error(`MQTT error: ${error.message}`);
+        });
+    }
+
+    public publish(subtopic: string, payload: any, retain: boolean = false, qos: QoS = 0) {
+        const topic = `${ this.config.mqtt.topic }/${ subtopic }`;
+        const options = {
+            retain: retain,
+            qos: qos
+        };
+
+        this.mqtt.publish(topic, payload, options);
     }
 }

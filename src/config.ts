@@ -8,8 +8,9 @@ export class Config {
     private commandArguments: any;
     private fileConfig: any;
 
-    public serverPort: number;
     public tahoma: TahomaAccount;
+    public server: any;
+    public mqtt: any;
 
     constructor(args: any) {
         // get command-line configuration
@@ -19,10 +20,16 @@ export class Config {
         this.fileConfig = JSON.parse(readFileSync(path.resolve(__dirname, this.commandArguments.config), 'utf-8'));
         
         // set configuration values
-        this.serverPort = this.commandArguments.port || this.fileConfig.serverPort || 3000;
+        this.server = this.fileConfig.server;
         this.tahoma = this.fileConfig.tahoma;
+        this.mqtt = this.fileConfig.mqtt;
 
-        // init logger
+        // override server port number when defined as command-line argument
+        if (this.commandArguments.port) {
+            this.server.port = this.commandArguments.port;
+        }
+
+        // define logger verbosity level based upon command-line argument/file config
         log.setSettings({
             minLevel: (this.commandArguments.verbose || this.fileConfig.log || 'info')
         });
