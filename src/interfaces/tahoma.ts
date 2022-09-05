@@ -17,6 +17,7 @@ export interface TahomaGateway {
 export interface TahomaDevice {
     oid: string;
     label: string;
+    deviceURL: string;
     type: number;
     available: boolean;
     enabled: true;
@@ -58,7 +59,7 @@ export interface TahomaState {
 }
 
 export interface TahomaCommand {
-    name?: string;
+    name: string;
     type?: number;
     parameters?: any[];
 }

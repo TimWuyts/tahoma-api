@@ -4,7 +4,7 @@ import { CookieJar } from 'tough-cookie';
 import { FileCookieStore } from 'tough-cookie-file-store';
 
 import { HttpResponse } from './enums/http-response';
-import { TahomaAccount, TahomaAction, TahomaActionGroup } from './interfaces/tahoma';
+import { TahomaAccount, TahomaActionGroup, TahomaCommand, TahomaDevice } from './interfaces/tahoma';
 
 export class Tahoma {
   private readonly BASE_URL: string = 'https://www.tahomalink.com/enduser-mobile-web/enduserAPI';
@@ -71,33 +71,32 @@ export class Tahoma {
 
   /**
 	 * Gets the Tahoma device state history
-	 * @param {string} deviceUrl - The device url for the device as defined in Tahoma
+	 * @param {string} deviceURL - The device url for the device as defined in Tahoma
 	 * @param {string} state - The device state for which to retrieve the hisory
 	 * @param {EpochTimeStamp} from - The timestamp from which to retrieve the history
 	 * @param {EpochTimeStamp} to - The timestamp until to retrieve the history
 	 * @returns {Promise<any>}
 	 * @async
 	 */
-  public getDeviceStateHistory(deviceUrl: string, state: string, from: EpochTimeStamp, to: EpochTimeStamp): Promise<any> {
-    return this.get(`/setup/devices/${encodeURIComponent(deviceUrl)}/states/${encodeURIComponent(state)}/history/${from}/${to}`);
+  public getDeviceStateHistory(deviceURL: string, state: string, from: EpochTimeStamp, to: EpochTimeStamp): Promise<any> {
+    return this.get(`/setup/devices/${encodeURIComponent(deviceURL)}/states/${encodeURIComponent(state)}/history/${from}/${to}`);
   }
   
   /**
 	 * Invokes an action on a given device in TaHoma
-	 * @param {string} name - Name of the device
-	 * @param {string} deviceUrl - Url of the device
-	 * @param {TahomaAction} action - An object defining the action to be executed
+   * @param {TahomaDevice} device - An object defining the device to which the action applies
+	 * @param {TahomaCommand} action - An object defining the command to be executed on the device
 	 * @returns {Promise<any>}
 	 * @async
 	 */
-  public executeDeviceAction(name: string, deviceUrl: string, action: TahomaAction): Promise<any> {
+  public executeDeviceAction(device: TahomaDevice, command: TahomaCommand): Promise<any> {
     const actionData: TahomaActionGroup = {
-      label: `${name}-${action.name}`,
+      label: `${device.label.toLowerCase()}-${command.name.toLowerCase()}`,
       actions: [
         {
-          deviceURL: deviceUrl,
+          deviceURL: device.deviceURL,
           commands: [
-            action
+            command
           ]
         }
       ]
@@ -177,7 +176,7 @@ export class Tahoma {
 
 
   private request(options: AxiosRequestConfig): Promise<any> {
-    console.debug(options);
+    // console.debug(options);
 
     return this.client(options)
       .then((response: AxiosResponse) => {

@@ -1,12 +1,12 @@
 import * as bodyParser from 'body-parser';
 import * as http from 'http';
 import path from 'path';
-import express, { Express } from 'express';
+import express, { Express, NextFunction } from 'express';
 import { Request, Response } from 'express-serve-static-core';
 
 import { Config } from './config';
 import { Tahoma } from './tahoma';
-import { TahomaAction, TahomaActionGroup, TahomaDevice, TahomaGateway } from './interfaces/tahoma';
+import { TahomaAction, TahomaActionGroup, TahomaCommand, TahomaDevice, TahomaGateway } from './interfaces/tahoma';
 import { AxiosResponse } from 'axios';
 import { connect, MqttClient, QoS } from 'mqtt';
 
@@ -18,7 +18,7 @@ export class Server {
     public mqtt: MqttClient;
 
     public tahoma: Tahoma;
-    public tahomaGateway: TahomaGateway|null = null;
+    public tahomaGateways: Array<TahomaGateway> = [];
     public tahomaDevices: Array<TahomaDevice> = [];
     public tahomaActionGroups: Array<TahomaActionGroup> = [];
 
@@ -29,13 +29,15 @@ export class Server {
         this.app = express();
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: true }));
-
-        this.routes();
+        this.app.use(this.routes());
+        this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+            res.status(500).send({ error: err });
+        });
 
         this.server = this.app.listen(this.config.server.port, () => {
-            console.info(`Tahoma API listening on port ${this.config.server.port}`);
+            console.info(`Tahoma API listening on http://localhost:${this.config.server.port}`);
 
-            this.init();     
+            this.initState();     
         });
 
         this.mqtt = connect(this.config.mqtt.url, {
@@ -53,21 +55,26 @@ export class Server {
         this.listeners();
     }
 
-    private init() {
-        this.tahoma.getSetup()
+    private initState() {
+        this.getSetup();
+        this.getGroups();
+    }
+
+    private getSetup(): Promise<any> {
+        return this.tahoma.getSetup()
             .then((response: AxiosResponse) => {
-                this.tahomaGateway = response.data.gateway;
+                this.tahomaGateways = response.data.gateways;
                 this.tahomaDevices = response.data.devices;
-                console.log(this.tahomaDevices);
             })
             .catch(error => {
                 console.error(error.message, error.stack);
             });
+    }
 
-        this.tahoma.getActionGroups()
+    private getGroups(): Promise<any> {
+        return this.tahoma.getActionGroups()
             .then((response: AxiosResponse) => {
                 this.tahomaActionGroups = response.data;
-                console.log(this.tahomaActionGroups);
             })
             .catch(error => {
                 console.error(error.message, error.stack);
@@ -82,30 +89,61 @@ export class Server {
         });
 
         router.get('/overview', (req: Request, res: Response) => {
-            // TODO: get an overview of devices, scenario's, ...
-            res.send('TODO: overview');
+            this.getSetup().then(() => {
+                const combined = {
+                    gateways: this.tahomaGateways,
+                    devices: this.tahomaDevices,
+                    groups: this.tahomaActionGroups
+                };
+    
+                res.json(combined);
+            });
         });
 
-        router.get('/execute/:name/:action?', (req: Request, res: Response) => {
-            const name = req.params.name;
+        router.get('/execute/:identifier/:command?/:parameters?', (req: Request, res: Response, next: NextFunction) => {
+            const identifier = req.params.identifier.toLowerCase();
             
-            if (req.params.action) {
+            if (req.params.command) {
                 // execute device action
-                const deviceUrl = 'TODO';
-                const action: TahomaAction = {
-                    name: req.params.action
+                const device = this.tahomaDevices.find((device) => {
+                    const id = device.oid?.toLowerCase();
+                    const label = device.label.toLowerCase();
+
+                    return (identifier === id || identifier === label);
+                });
+
+                if (!device?.deviceURL) {
+                    throw new Error('Device not found');
+                }
+
+                if (!device?.available || !device?.enabled) {
+                    throw new Error('Device currently not available or enabled.');
+                }
+
+                const command: TahomaCommand = {
+                    name: req.params.command,
+                    parameters: req.params.parameters ? req.params.parameters.split(':') : []
                 };
 
-                res.json(this.tahoma.executeDeviceAction(name, deviceUrl, action));
+                res.json(this.tahoma.executeDeviceAction(device, command));
             } else {
                 // execute scenario
-                const scenarioId = 'TODO';
+                const group = this.tahomaActionGroups.find((group) => {
+                    const id = group.oid?.toLowerCase();
+                    const label = group.label.toLowerCase();
+                    
+                    return (identifier === id || identifier === label);
+                });
 
-                res.json(this.tahoma.executeScenario(scenarioId));
+                if (!group?.oid) {
+                    throw new Error('Scenario not found');
+                }
+
+                res.json(this.tahoma.executeScenario(group.oid));
             }
         });
 
-        this.app.use(router);
+        return router;
     }
 
     private listeners() {
