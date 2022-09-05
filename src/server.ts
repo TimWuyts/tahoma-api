@@ -37,7 +37,8 @@ export class Server {
         this.server = this.app.listen(this.config.server.port, () => {
             console.info(`Tahoma API listening on http://localhost:${this.config.server.port}`);
 
-            this.initState();     
+            this.initState();
+            setInterval(() => this.refreshState(), this.config.server.refresh * 1000);
         });
 
         this.mqtt = connect(this.config.mqtt.url, {
@@ -60,11 +61,20 @@ export class Server {
         this.getGroups();
     }
 
+    private refreshState() {
+        console.info(`Refreshed state for gateway and devices`);
+    
+        this.getSetup();
+    }
+
     private getSetup(): Promise<any> {
         return this.tahoma.getSetup()
             .then((response: AxiosResponse) => {
                 this.tahomaGateways = response.data.gateways;
+                this.publish('gateways', this.tahomaGateways, true);
+
                 this.tahomaDevices = response.data.devices;
+                this.publish('devices', this.tahomaDevices, false);
             })
             .catch(error => {
                 console.error(error.message, error.stack);
@@ -75,6 +85,7 @@ export class Server {
         return this.tahoma.getActionGroups()
             .then((response: AxiosResponse) => {
                 this.tahomaActionGroups = response.data;
+                this.publish('actionGroups', this.tahomaActionGroups, true);
             })
             .catch(error => {
                 console.error(error.message, error.stack);
@@ -117,7 +128,7 @@ export class Server {
                 }
 
                 if (!device?.available || !device?.enabled) {
-                    throw new Error('Device currently not available or enabled.');
+                    throw new Error('Device currently not available or enabled');
                 }
 
                 const command: TahomaCommand = {
@@ -162,13 +173,20 @@ export class Server {
         });
     }
 
-    public publish(subtopic: string, payload: any, retain: boolean = false, qos: QoS = 0) {
+    public publish(subtopic: string, payload: any, retain: boolean = false, payloadKey: string = 'oid', qos: QoS = 0) {
         const topic = `${ this.config.mqtt.topic }/${ subtopic }`;
         const options = {
             retain: retain,
             qos: qos
         };
 
-        this.mqtt.publish(topic, payload, options);
+        if (Array.isArray(payload)) {
+            payload.forEach((payloadItem, index) => {
+                const payloadIdentifier = payloadItem[payloadKey] || index;
+                this.mqtt.publish(`${topic}/${payloadIdentifier}`, JSON.stringify(payloadItem), options);
+            });
+        } else {
+            this.mqtt.publish(topic, JSON.stringify(payload), options);
+        }
     }
 }
