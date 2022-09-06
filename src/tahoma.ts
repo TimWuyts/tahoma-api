@@ -2,6 +2,7 @@ import axios, { AxiosRequestConfig, AxiosResponse, AxiosInstance, AxiosError } f
 import { wrapper } from 'axios-cookiejar-support';
 import { CookieJar } from 'tough-cookie';
 import { FileCookieStore } from 'tough-cookie-file-store';
+import { camelCase } from 'lodash';
 
 import { HttpResponse } from './enums/http-response';
 import { TahomaAccount, TahomaActionGroup, TahomaCommand, TahomaDevice } from './interfaces/tahoma';
@@ -91,7 +92,7 @@ export class Tahoma {
 	 */
   public executeDeviceAction(device: TahomaDevice, command: TahomaCommand): Promise<any> {
     const actionData: TahomaActionGroup = {
-      label: `${device.label.toLowerCase()}-${command.name.toLowerCase()}`,
+      label: `${camelCase(device.label)}-${command.name}`,
       actions: [
         {
           deviceURL: device.deviceURL,

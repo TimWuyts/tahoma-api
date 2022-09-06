@@ -2,13 +2,15 @@ import * as bodyParser from 'body-parser';
 import * as http from 'http';
 import path from 'path';
 import express, { Express, NextFunction } from 'express';
-import { Request, Response } from 'express-serve-static-core';
-
-import { Config } from './config';
-import { Tahoma } from './tahoma';
-import { TahomaAction, TahomaActionGroup, TahomaCommand, TahomaDevice, TahomaGateway } from './interfaces/tahoma';
+import { camelCase } from 'lodash';
 import { AxiosResponse } from 'axios';
 import { connect, MqttClient, QoS } from 'mqtt';
+import { Request, Response } from 'express-serve-static-core';
+
+import { HttpResponse } from './enums/http-response';
+import { Config } from './config';
+import { Tahoma } from './tahoma';
+import { TahomaActionGroup, TahomaCommand, TahomaDevice, TahomaGateway } from './interfaces/tahoma';
 
 export class Server {
     private readonly config: Config;
@@ -31,7 +33,7 @@ export class Server {
         this.app.use(bodyParser.urlencoded({ extended: true }));
         this.app.use(this.routes());
         this.app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-            res.status(500).send({ error: err });
+            res.status(HttpResponse.SERVER_ERROR).send({ error: err });
         });
 
         this.server = this.app.listen(this.config.server.port, () => {
@@ -111,17 +113,30 @@ export class Server {
             });
         });
 
-        router.get('/execute/:identifier/:command?/:parameters?', (req: Request, res: Response, next: NextFunction) => {
-            const identifier = req.params.identifier.toLowerCase();
-            
+        router.get('/device/:identifier', (req: Request, res: Response) => {
+            const device = this.lookup(this.tahomaDevices, req.params.identifier);
+        
+            if (!device) {
+                throw new Error('Device not found');
+            }
+
+            res.json(device);
+        });
+
+        router.get('/group/:identifier', (req: Request, res: Response) => {
+            const group = this.lookup(this.tahomaActionGroups, req.params.identifier);
+
+            if (!group) {
+                throw new Error('Group not found');
+            }
+
+            res.json(group);
+        });
+
+        router.get('/execute/:identifier/:command?/:parameters?', (req: Request, res: Response) => {
             if (req.params.command) {
                 // execute device action
-                const device = this.tahomaDevices.find((device) => {
-                    const id = device.oid?.toLowerCase();
-                    const label = device.label.toLowerCase();
-
-                    return (identifier === id || identifier === label);
-                });
+                const device = this.lookup(this.tahomaDevices, req.params.identifier);
 
                 if (!device?.deviceURL) {
                     throw new Error('Device not found');
@@ -131,20 +146,22 @@ export class Server {
                     throw new Error('Device currently not available or enabled');
                 }
 
+                let commandName = camelCase(req.params.command);
+                let commandParams = (req.params.parameters ? req.params.parameters.split(':') : [])
+                    .map((item) => {
+                        const number = parseInt(item);
+                        return (isNaN(number) ? item : number)
+                    });
+
                 const command: TahomaCommand = {
-                    name: req.params.command,
-                    parameters: req.params.parameters ? req.params.parameters.split(':') : []
+                    name: commandName,
+                    parameters: commandParams
                 };
 
                 res.json(this.tahoma.executeDeviceAction(device, command));
             } else {
                 // execute scenario
-                const group = this.tahomaActionGroups.find((group) => {
-                    const id = group.oid?.toLowerCase();
-                    const label = group.label.toLowerCase();
-                    
-                    return (identifier === id || identifier === label);
-                });
+                const group = this.lookup(this.tahomaActionGroups, req.params.identifier);
 
                 if (!group?.oid) {
                     throw new Error('Scenario not found');
@@ -155,6 +172,17 @@ export class Server {
         });
 
         return router;
+    }
+
+    private lookup(items: Array<any>, key: string): any {
+        const identifier = key.replace(/ /g, '-').toLowerCase();
+        
+        return items.find((item) => {
+            const id = item.oid?.toLowerCase();
+            const label = item.label.replace(/ /g, '-').toLowerCase();
+            
+            return (identifier === id || identifier === label);
+        });
     }
 
     private listeners() {
