@@ -8,7 +8,7 @@ import { HttpResponse } from './enums/http-response';
 import { TahomaAccount, TahomaActionGroup, TahomaCommand, TahomaDevice } from './interfaces/tahoma';
 
 export class Tahoma {
-  private readonly BASE_URL: string = 'https://www.tahomalink.com/enduser-mobile-web/enduserAPI';
+  private readonly BASE_URL: string = 'https://ha101-1.overkiz.com/enduser-mobile-web/enduserAPI';
 
   private username: TahomaAccount['username'];
   private password: TahomaAccount['password'];
